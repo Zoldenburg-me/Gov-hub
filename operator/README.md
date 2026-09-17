@@ -26,10 +26,23 @@ Shutter DAO 0x36's delegates.
   Tamper-evident forward commitments for an autonomous agent — only
   Shutter's threshold encryption makes this possible.
 
+- **A public voice (the Herald).** Mention the DAO's account on Farcaster
+  or X and the agent answers in the thread — the Grok pattern, but
+  Gateway-mediated: a polling Producer dedupes mentions into Postgres and
+  emits Signals; the agent posts only through `POST /public-replies`, and
+  every public utterance is recorded in `govhub_herald.replies` first.
+  Asked to predict an open vote, the agent publishes a **sealed forecast**
+  (a Shutter-encrypted commitment that auto-reveals when voting closes)
+  instead of an opinion — a public bot that provably cannot steer the vote
+  it comments on.
+
 ## Layout
 
 - `main.ts` — the entry point: Gateway wiring, Signal Handlers, seeding.
 - `src/sealed-commitments.ts` — the Sealed Commitments Component.
+- `src/herald/` — the Herald: mention-polling Producer, per-platform
+  adapters (Farcaster via Neynar, X API v2), the public-replies route and
+  its audit tables. Enable with `HERALD=farcaster` or `HERALD=x` in `.env`.
 - `src/shutter.ts` — Shutter API client (register identity / seal / reveal).
 - `src/snapshot.ts` — Snapshot hub client for the digest.
 - `AGENTS.md`, `settings.json` — the agent's instructions and model config.
@@ -59,6 +72,13 @@ or build a client.
 
 > Status: typechecked against Concorde `0.1.0` source; the compose stack is
 > untested in this repository's CI sandbox (no Docker daemon) — treat the
-> first `docker compose up` as a smoke test. Concorde itself is alpha and
-> its API may move under us; the vendor script pins whatever `main` is at
-> clone time, so pin a commit before selling uptime.
+> first `docker compose up` as a smoke test. The Neynar and X adapter
+> endpoint shapes are written from their documented v2 APIs but not yet
+> exercised against live credentials. Concorde itself is alpha and its API
+> may move under us; the vendor script pins whatever `main` is at clone
+> time, so pin a commit before selling uptime.
+>
+> Dependency note: `drizzle-orm` is deliberately consumed from
+> `vendor/concorde/node_modules` (a `file:` dependency) so both codebases
+> share one copy — two copies fail typechecking on drizzle's private class
+> members. Run `scripts/setup-vendor.sh` before `npm install` here.

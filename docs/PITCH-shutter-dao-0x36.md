@@ -40,7 +40,13 @@ Repo: https://github.com/Zoldenburg-me/Gov-hub
    automatically decrypted and republished at reveal time. Signed ciphertext
    now, verifiable plaintext later; nobody, Operator included, can open it
    early. This is "tamper-evident autonomy," and only Shutter can sell it.
-3. **A public governance dashboard** (`web/`): live `shutterdao0x36.eth`
+3. **The Herald** — a public voice for the agent: mention the DAO's account
+   on Farcaster or X and it answers in the thread, Gateway-mediated and
+   audit-logged. Asked to predict an open vote, it publishes a *sealed
+   forecast* (Shutter-encrypted, auto-revealed at vote close) instead of an
+   opinion — a public bot that provably cannot steer the votes it comments
+   on. Growth surface for the DAO, standing demo for Shutter.
+4. **A public governance dashboard** (`web/`): live `shutterdao0x36.eth`
    proposals, shielded-voting state, and a browser demo of Shutter sealed
    positions.
 

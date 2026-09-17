@@ -14,7 +14,7 @@
   "dependencies": {
     "@shutter-network/concorde": "file:../vendor/concorde",
     "@shutter-network/shutter-sdk": "^0.0.2",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "file:../vendor/concorde/node_modules/drizzle-orm",
     "fastify": "5.11.0"
   },
   "devDependencies": {

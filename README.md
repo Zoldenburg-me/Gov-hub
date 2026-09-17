@@ -21,6 +21,11 @@ A shared agent its members reach only through a neutral Gateway we operate:
   digested to every delegate; shielded-vote tallies never speculated about.
 - **Signed commitments** — the agent publishes Ed25519-signed, numbered,
   immutable Decisions anyone can verify offline.
+- **A public voice** — mention the DAO's account on Farcaster or X and the
+  agent answers in the thread (the Grok pattern), Gateway-mediated and
+  audit-logged; asked about an open vote, it publishes a **sealed
+  forecast** that auto-reveals at vote close instead of an opinion, so it
+  provably cannot steer the vote it comments on.
 - **Sealed commitments** — our own Concorde Component
   ([`operator/src/sealed-commitments.ts`](operator/src/sealed-commitments.ts)):
   Decisions whose content is timelock-encrypted by the Shutter Keyper

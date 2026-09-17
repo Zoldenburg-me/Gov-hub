@@ -32,6 +32,10 @@ import {
 import { type Prompt, type SignalHandler, templateHandler } from "@shutter-network/concorde/signals";
 import { createSignatures } from "@shutter-network/concorde/signatures";
 import { createUsers } from "@shutter-network/concorde/users";
+import type { SocialAdapter } from "./src/herald/adapter.ts";
+import { createFarcasterAdapter } from "./src/herald/farcaster.ts";
+import { createHerald, type MentionPayload, mentionReceivedKind } from "./src/herald/herald.ts";
+import { createXAdapter } from "./src/herald/x.ts";
 import {
   createSealedCommitments,
   type SealedRevealScheduleData,
@@ -62,6 +66,30 @@ const delegates = (process.env.DELEGATES ?? "")
 
 const tokenTtl = 30 * 24 * 60 * 60 * 1000;
 const digestScheduleName = "governance-digest";
+
+/** HERALD picks the public voice: "farcaster", "x", or unset for none. */
+function heraldAdapter(): SocialAdapter | null {
+  switch (process.env.HERALD) {
+    case undefined:
+    case "":
+    case "off":
+      return null;
+    case "farcaster":
+      return createFarcasterAdapter({
+        apiKey: process.env.NEYNAR_API_KEY!,
+        fid: Number(process.env.FARCASTER_FID),
+        signerUuid: process.env.FARCASTER_SIGNER_UUID!,
+      });
+    case "x":
+      return createXAdapter({
+        userId: process.env.X_USER_ID!,
+        readToken: process.env.X_READ_TOKEN!,
+        postToken: process.env.X_POST_TOKEN!,
+      });
+    default:
+      throw new Error(`HERALD must be "farcaster", "x" or unset, not ${process.env.HERALD}`);
+  }
+}
 
 const runtime = createPiRuntime({
   image: process.env.AGENT_IMAGE!,
@@ -101,6 +129,7 @@ const gateway = createGateway({
       agentServer,
       shutter: createShutterClient(shutterApiBase),
     });
+    const herald = createHerald({ db, worker, agentServer, adapter: heraldAdapter() });
     return {
       users,
       passwordAuth,
@@ -110,6 +139,7 @@ const gateway = createGateway({
       httpChannel,
       scheduler,
       sealedCommitments,
+      herald,
     };
   },
   handlers: ({ sealedCommitments }) => {
@@ -159,7 +189,31 @@ const gateway = createGateway({
       },
     };
 
+    const mentionReceived: SignalHandler<MentionPayload> = {
+      async handle(signal): Promise<Prompt[]> {
+        const mention = signal.payload;
+        return [
+          {
+            session: `public_thread_${mention.platform}_${mention.threadId}`,
+            text: [
+              `A public mention arrived on ${mention.platform} from ${mention.author}`,
+              `(post ${mention.externalId}). They wrote:`,
+              mention.text,
+              ``,
+              `This is your PUBLIC voice: whatever you post is visible to the`,
+              `whole platform, not just the author. Answer by calling`,
+              `POST /public-replies with {"inReplyTo": "${mention.externalId}",`,
+              `"text": "..."} — your final reply here reaches nobody. Follow`,
+              `the public-voice rules in your AGENTS.md; when asked to predict`,
+              `an open vote, use a sealed forecast instead of stating a view.`,
+            ].join("\n"),
+          },
+        ];
+      },
+    };
+
     return {
+      [mentionReceivedKind]: mentionReceived as SignalHandler,
       [messageReceivedKind]: templateHandler<MessageRecord>({
         template: `A message arrived from user {{userId}}. They said:
 
