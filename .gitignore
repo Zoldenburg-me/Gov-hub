@@ -1,4 +1,9 @@
 node_modules/
 dist/
+vendor/
 *.local
 .DS_Store
+.env
+operator/state/
+operator/signing-key.pem
+*.tsbuildinfo

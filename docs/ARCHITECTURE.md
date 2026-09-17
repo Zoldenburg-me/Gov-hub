@@ -1,56 +1,65 @@
 # Architecture
 
-Gov-Hub v0.1 is deliberately serverless: a static Vite + React SPA. Every
-integration is a public, unauthenticated API called from the browser, so the
-whole product can be hosted from a CDN and audited by anyone.
+Gov-Hub has two halves: the **operator** (the product — a Concorde
+deployment we run per DAO) and the **web** dashboard (the public face).
+
+## Operator (`operator/`)
+
+A [Concorde](https://github.com/shutter-network/concorde) Gateway. Members
+never reach the agent directly; the Gateway mediates everything and keeps
+the durable record.
 
 ```
-┌────────────────────────── Browser ──────────────────────────┐
-│  React SPA                                                  │
-│  ├─ src/config/daos.ts        tenant registry (per-DAO)     │
-│  ├─ src/lib/snapshot.ts  ───► hub.snapshot.org/graphql      │
-│  │       proposals, space stats, shielded-voting flag       │
-│  ├─ src/lib/shutter.ts   ───► shutter-api.shutter.network   │
-│  │       register_identity / get_decryption_key             │
-│  │       + @shutter-network/shutter-sdk (BLS via WASM):     │
-│  │         encryptData / decrypt run locally                │
-│  └─ src/lib/storage.ts        localStorage (convenience     │
-│                               only; commitments are         │
-│                               self-contained JSON)          │
-└─────────────────────────────────────────────────────────────┘
+ delegates ──HTTP──► Public server ─► Messenger ─► Signal queue
+                                                       │ (serial)
+                     Postgres ◄─── Db ◄────────────────┤
+                                                       ▼
+                              Signal Handlers (our code, trusted)
+                              ├─ message → Q&A Prompt (per-user session)
+                              ├─ digest schedule → fetch Snapshot hub,
+                              │    hand fresh data to the agent in the Prompt
+                              └─ sealed-reveal schedule → Shutter API key
+                                   fetch, decrypt, publish reveal Decision
+                                                       │
+                                                       ▼
+                              Agent runs (fresh container per Run, pi agent)
+                                 └─► Agent server routes:
+                                     messages, decisions, schedules,
+                                     POST /sealed-commitments  (ours)
 ```
 
-## Sealed Positions data flow
+### The Sealed Commitments Component
 
-1. **Seal** — `POST /register_identity` with a random 32-byte
-   `identityPrefix` and the chosen `decryptionTimestamp`. The response's
-   `identity` + `eon_key` feed `encryptData()` (plaintext → ciphertext,
-   entirely client-side, random sigma).
-2. **Publish** — the commitment is a self-contained JSON blob
-   (`identity`, `eonKey`, `ciphertext`, `decryptionTimestamp`). Users post it
-   wherever their community lives. Gov-Hub keeps a localStorage copy purely
-   as a convenience.
-3. **Reveal** — after the timestamp, `GET /get_decryption_key?identity=…`
-   returns the key the Keyper network released; `decrypt()` recovers the
-   plaintext locally. Anyone holding the JSON can do this — reveal is
-   permissionless and verifiable.
+`operator/src/sealed-commitments.ts` — a third-party Concorde Component
+combining two primitives:
 
-Trust model: early decryption requires colluding with a threshold of Shutter
-Keypers. Gov-Hub holds no secrets and can disappear without breaking anyone's
-commitments.
+1. **Concorde Decisions**: Ed25519-signed, numbered, immutable statements.
+2. **Shutter timelock encryption**: the Keyper network releases decryption
+   keys only after a registered timestamp.
 
-## Adding a tenant
+Flow: agent calls `POST /sealed-commitments {statement, revealAt}` → we
+register a Shutter identity for `revealAt`, encrypt the statement (the
+plaintext never touches the database), publish a Decision carrying the
+ciphertext, and arm a one-shot Schedule. At reveal time the Schedule fires,
+we fetch the released key, decrypt, and publish a linked reveal Decision.
+A third party can verify the whole chain offline: both signatures with the
+agent's public key, and the decryption against the published ciphertext.
 
-Add a `DaoConfig` to `src/config/daos.ts` (Snapshot space id, links, treasury
-addresses). Everything else — dashboard, badges, sealed positions — is
-tenant-agnostic. The hosted/paid version moves this registry server-side with
-per-DAO theming and custom domains.
+Trust model: the Operator (us) is trusted to run the Gateway — that is
+Concorde's own model — but *cannot* open a sealed commitment early, because
+early decryption requires colluding with a threshold of Shutter Keypers.
 
-## Known deferred work
+### Dependency note
 
-- The Shutter API response envelope (`{ message: … }` wrapper, key field
-  names) is normalized defensively in `src/lib/shutter.ts::unwrap` — confirm
-  against the live API on first deploy (the build sandbox had no egress).
-- Registering an identity costs the API service gas on Gnosis Chain; heavy
-  usage should move behind a Gov-Hub-operated registration proxy with an API
-  key, which is also the metering point for the paid tier.
+Concorde is not on the npm registry yet. `scripts/setup-vendor.sh` clones it
+into `vendor/` (dependencies installed with `--ignore-scripts`); the
+operator typechecks against that source via `tsconfig` paths, and the
+Docker image builds it. Pin a commit before selling uptime.
+
+## Web (`web/`)
+
+Serverless Vite + React SPA: live proposals for the DAO's Snapshot space
+(shielded-voting badges, quorum), deep links to Forum/Snapshot/Decent, and
+a browser demo of Shutter sealed positions (in-browser threshold BLS via
+the SDK's WASM). Multi-tenant via `web/src/config/daos.ts`. Later: the
+public verification page for the agent's sealed commitments.

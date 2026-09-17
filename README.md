@@ -1,71 +1,60 @@
 # Gov-Hub
 
-**One pane of glass for DAO governance, with commitments sealed by [Shutter Network](https://www.shutter.network) threshold encryption.**
+**Gov-Hub runs shared AI agents for DAOs — built on
+[Shutter Network](https://www.shutter.network)'s
+[Concorde](https://github.com/shutter-network/concorde) framework and
+threshold encryption.**
 
-Flagship tenant: **[Shutter DAO 0x36](https://www.shutter.network/shutter-dao)**.
+Concorde defines an *Operator*: the party every member of a group trusts to
+run their shared agent. Shutter wrote the framework and the trust model, but
+nobody occupies the role commercially. Gov-Hub is that Operator, sold as a
+service per DAO. Flagship deployment:
+**[Shutter DAO 0x36](https://www.shutter.network/shutter-dao)**.
 
-## Why
+## What a DAO buys
 
-Shutter DAO 0x36's governance lives in three places: the
-[Discourse forum](https://shutternetwork.discourse.group) (discussion), the
-[Snapshot space `shutterdao0x36.eth`](https://snapshot.org/#/shutterdao0x36.eth)
-(off-chain shielded voting), and [Decent](https://app.decentdao.org) (on-chain
-executable votes). Delegates context-switch constantly; newcomers get lost.
+A shared agent its members reach only through a neutral Gateway we operate:
 
-Gov-Hub unifies them — and adds a governance primitive that only Shutter's own
-technology makes possible.
+- **Member Q&A over one durable record** — no private access for anyone,
+  every exchange logged, the agent neutral between members by construction.
+- **Daily governance digest** — live Snapshot state fetched Gateway-side and
+  digested to every delegate; shielded-vote tallies never speculated about.
+- **Signed commitments** — the agent publishes Ed25519-signed, numbered,
+  immutable Decisions anyone can verify offline.
+- **Sealed commitments** — our own Concorde Component
+  ([`operator/src/sealed-commitments.ts`](operator/src/sealed-commitments.ts)):
+  Decisions whose content is timelock-encrypted by the Shutter Keyper
+  network. Published and signed now, readable by nobody (us included) until
+  the reveal time, then decrypted and republished automatically as a linked
+  reveal Decision. Tamper-evident forward commitments for an autonomous
+  agent — embargoed positions, sealed grant scores, pre-committed actions.
 
-## Features (v0.1)
+## Repository layout
 
-- **Proposal dashboard** — live proposals from the Snapshot hub with state,
-  quorum progress, vote counts, and a *shielded* badge when a proposal uses
-  Shutter shielded voting (tallies are hidden while voting is open, exactly as
-  the encryption guarantees).
-- **Sealed Positions** — timelock-encrypted commitments built directly on the
-  [Shutter API](https://www.shutter.network/shutter-api) and
-  [`@shutter-network/shutter-sdk`](https://www.npmjs.com/package/@shutter-network/shutter-sdk):
-  1. Write a position (a delegate stance, an embargoed proposal draft, a
-     sealed grant-review score) and pick a reveal time.
-  2. Gov-Hub registers an identity with the Keyper network and encrypts
-     **in your browser** (threshold BLS via WASM — the plaintext never leaves
-     your machine).
-  3. Post the sealed JSON anywhere public (e.g. the forum) as a
-     tamper-evident pledge. Nobody — not you, not Gov-Hub, not any single
-     Keyper — can open it early. After the reveal time, anyone can decrypt it.
-- **Governance surface links** — forum, Snapshot, Decent, and treasury
-  contracts one click away.
+| Path | What it is |
+| --- | --- |
+| [`operator/`](operator/) | The Concorde deployment for Shutter DAO 0x36: Gateway wiring, Signal Handlers, the Sealed Commitments Component, compose stack. Typechecked against vendored Concorde source. |
+| [`web/`](web/) | Public governance dashboard (Vite + React): live `shutterdao0x36.eth` proposals with shielded-voting state, plus a browser demo of Shutter sealed positions. The build is validated. |
+| [`docs/`](docs/) | [Architecture](docs/ARCHITECTURE.md) and the [funding proposal draft to Shutter DAO 0x36](docs/PITCH-shutter-dao-0x36.md). |
+| `scripts/setup-vendor.sh` | Fetches Concorde (not yet on npm) into `vendor/` for typechecking and image builds. |
 
-Multi-tenant by design: onboarding another DAO is one entry in
-[`src/config/daos.ts`](src/config/daos.ts).
-
-## Run it
+## Quick start
 
 ```bash
-npm install
-npm run dev      # local dev server
-npm run build    # typecheck + production build (validated)
+# dashboard
+cd web && npm install && npm run build
+
+# operator (see operator/README.md for the full deployment)
+./scripts/setup-vendor.sh
+cd operator && npm install && npm run typecheck
 ```
 
-No backend, no keys, no tracking: the browser talks straight to the Snapshot
-GraphQL hub and the public Shutter API.
+## Why Shutter's stack
 
-> **Note:** `npm run build` (typecheck + bundle, incl. the SDK's WASM) is
-> verified in CI-like conditions. The live calls to `hub.snapshot.org` and
-> `shutter-api.shutter.network` run client-side and were not reachable from
-> the build sandbox; the response envelope is normalized defensively in
-> [`src/lib/shutter.ts`](src/lib/shutter.ts) — verify against the live API on
-> first deploy.
-
-## Docs
-
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how the pieces fit.
-- [`docs/PITCH-shutter-dao-0x36.md`](docs/PITCH-shutter-dao-0x36.md) — draft
-  funding proposal to Shutter DAO 0x36 (Shutter Champions / forum proposal).
-
-## Roadmap
-
-- Forum feed integration (Discourse API) and cross-linking proposals ↔ threads.
-- On-chain (Decent/Safe) proposal + treasury balances via RPC.
-- Hosted sealed-commitment registry so commitments are browsable per proposal.
-- Sealed-bid grant rounds: reviewers commit scores before discussion opens.
-- Per-DAO hosted config + custom domains (the paid tier).
+Shutter's Keyper network provides threshold encryption nobody — no single
+party, us included — can open early. That is the property that makes a
+shared agent's *sealed* commitments credible, and it is infrastructure the
+DAO behind it ([Shutter DAO 0x36](https://docs.shutter.network/docs/dao/0x36))
+actively funds adoption of. Gov-Hub is both a product for DAOs and a
+standing demonstration of Shutter's API and Concorde framework in
+production.
