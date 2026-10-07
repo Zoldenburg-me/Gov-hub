@@ -72,3 +72,19 @@ Put the fact in the reply's **Open questions** with the exact read that
 would settle it (contract, function, argument, chain). Don't put it in the
 proposal as "to be confirmed" or "must be verified". Until it is
 answered, the matching value stays a `[TBD: …]` marker.
+
+## Read budget
+
+The free Blockscout MCP session allows about 8 tool calls, and from
+2026-10-08 the server requires a PRO API key (see the `onchain-review`
+skill's `references/api-keys.md`). Plan the reads before making them, in
+this order:
+
+1. the block number,
+2. the owner or executor,
+3. the state the proposal's claim rests on (position, balance, parameter),
+4. identity checks (pool or factory, Safe owners and threshold),
+5. history and modules.
+
+Anything left unread goes to Open questions, together with the exact
+call that would settle it.
