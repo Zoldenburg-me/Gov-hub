@@ -38,6 +38,7 @@ PATTERNS = [
     (r"\b(?:verified|confirmed|validated|fact-checked)\s*(?:above|below|again|twice|as accurate|for accuracy)\b", "reverification", "ERROR", "Replace with a link to the data or the transaction."),
     (r"\(\s*(?:verified|confirmed|checked)\s*\)", "reverification", "ERROR", "Inline 'verified' tags are noise; link the source."),
     (r"[✅✔☑]", "reverification", "ERROR", "Checkmark emoji; remove."),
+    (r"\b(?:to be (?:confirmed|verified|checked)|must (?:be )?(?:confirm|verif)\w*|(?:appears|believed|assumed) to (?:be|consist|hold|sit)\b)", "reverification", "WARN", "Readable on-chain? Check it with onchain-review and state the result; otherwise move it to Open questions."),
     (r"\b(?:to the best of (?:our|my) knowledge|as far as (?:we|i) (?:can tell|know)|if (?:we|i) understand correctly)\b", "reverification", "WARN", "Either you know it (cite it) or say exactly what is unknown."),
     (r"\b(?:please (?:verify|double-check|note)|note that|note:)\b", "reverification", "WARN", "Usually filler. If it matters, make it a sentence of its own."),
     (r"\b(?:accurate|correct) as of (?:the time of )?writing\b", "reverification", "WARN", "Give the date or block number once, in the data source line."),
@@ -195,7 +196,7 @@ def main():
     # deferred verification: the proposal tells someone else to check its facts
     verif = len(re.findall(r"\b(?:verif\w*|confirm\w*|double[- ]check\w*|byte[- ]for[- ]byte)\b", body, re.I))
     if verif * 1000 / n_words > 8:
-        add("WARN", 0, "reverification", f"{verif} verify/confirm words ({verif * 1000 / n_words:.0f} per 1000). Run the checks before posting and state the results with links; keep one execution-time check, not a running instruction.")
+        add("WARN", 0, "reverification", f"{verif} verify/confirm words ({verif * 1000 / n_words:.0f} per 1000). Run the on-chain reads before posting (onchain-review skill) and state the results with a block number and links; keep one execution-time check, not a running instruction.")
 
     # bold density
     bolds = len(re.findall(r"\*\*[^*]+\*\*", body))

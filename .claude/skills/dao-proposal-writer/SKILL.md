@@ -1,6 +1,6 @@
 ---
 name: dao-proposal-writer
-description: Write and tighten DAO governance proposals to the professional standard of pre-2023 forum proposals (Uniswap, ENS, Arbitrum, Aave, Compound, 1inch, Optimism, Maker, Lido, Gitcoin), using the target DAO's own template and with no AI padding — no restating, no self-verification, no leftovers from earlier drafts or chats. Use this whenever a DAOplomats member wants to draft, rewrite, shorten, clean up or format a governance proposal, temp check, RFC, AIP/EP/1IP/ARFC, grant or funding request, delegate program, parameter change, or a forum post to a DAO, even if they only paste notes, bullet points, an old draft or a call transcript. For critiquing someone else's proposal or deciding a vote, use governance-review instead; this skill writes, governance-review red-teams.
+description: Write and tighten DAO governance proposals to the professional standard of pre-2023 forum proposals (Uniswap, ENS, Arbitrum, Aave, Compound, 1inch, Optimism, Maker, Lido, Gitcoin), using the target DAO's own template and with no AI padding — no restating, no self-verification, no leftovers from earlier drafts or chats. Use this whenever a DAOplomats member wants to draft, rewrite, shorten, clean up or format a governance proposal, temp check, RFC, AIP/EP/1IP/ARFC, grant or funding request, delegate program, parameter change, or a forum post to a DAO, even if they only paste notes, bullet points, an old draft or a call transcript. Checks addresses, balances, positions and Safe setups on-chain with onchain-review before writing, so the proposal states facts instead of asking readers to verify them. For critiquing someone else's proposal or deciding a vote, use governance-review instead; this skill writes, governance-review red-teams.
 ---
 
 # DAO proposal writer (DAOplomats standard)
@@ -53,6 +53,40 @@ put it in an "Open questions" list for the member (step 5).
 Never invent figures, addresses, endorsements, audit results or
 precedents. Where a value is missing, leave a visible `[TBD: what is
 needed]` marker so the draft can't be posted by accident.
+
+### 2b. Verify on-chain facts before writing
+
+If the proposal rests on anything that lives on-chain, check it now with
+the `onchain-review` skill. Don't write it into the proposal as a task
+for someone else. This applies to:
+
+- addresses (treasury, recipient, executor Safe, contracts)
+- balances or positions (LP NFTs, vaults, streams)
+- current parameter values
+- Safe signers and modules
+- calldata
+- claims about past transactions or votes
+
+A proposal that says "to be confirmed", "must verify", "appears to be" or
+"believed to be" about something readable on a block explorer reads as
+unfinished, and it hands the reader work the author should have done.
+
+Invoke `onchain-review` (installed as `anthropic-skills:onchain-review` on
+claude.ai). Then follow `references/onchain-checks.md`, which covers:
+
+- what to read for each proposal type,
+- how to cite the reads: one "Data as of block N, UTC time" line, with
+  explorer links and no "verified" tags,
+- who decides when the chain and the member disagree: the chain decides
+  on-chain state; the member decides intent (recipient, amount), and you
+  ask them.
+
+If a check can't run (no connector, blocked host, off-chain fact), the
+fact goes to Open questions with the exact read that would settle it. The
+value stays a `[TBD]` in the draft.
+
+Signers still re-check amounts and simulate at execution. That is one
+sentence in the Specification, never a checklist inside the proposal.
 
 ### 3. Write each section once
 
@@ -123,8 +157,11 @@ Then the judgment pass the script can't do. For each, re-read the draft:
 
 - Delete any sentence whose information already appeared earlier.
 - Read the Summary alone. Does it say what a For vote does and costs?
-- Every number and address: is it from the member's current inputs or a
-  cited source, and does it match everywhere it's referenced?
+- Every number and address: is it from the member's current inputs, a
+  cited source, or an on-chain read from step 2b, and does it match
+  everywhere it's referenced?
+- Any "confirm", "verify", "to be confirmed", "appears", "believed" left
+  about on-chain state means step 2b was skipped. Go back and run it.
 - Anything comparing to "before", "previously", "now", "no longer": is the
   comparison against something the forum actually saw?
 - Would cutting this paragraph lose a fact? If not, cut it.
@@ -208,6 +245,9 @@ template doesn't have.
   examples. Read the section for the target DAO.
 - `references/anti-slop.md` — the three failure modes in detail, vocabulary
   table, formatting tells, before/after rewrites.
+- `references/onchain-checks.md` — what to read on-chain per proposal
+  type, how to cite it, and what to do when chain and member disagree.
+  Used with the `onchain-review` skill in step 2b.
 - `scripts/slop_check.py` — linter for the mechanical cases: restatement,
   self-verification and chat/version residue phrases, missing template
   sections, oversized summary, duplicated sentences, emoji, open
