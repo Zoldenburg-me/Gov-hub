@@ -1,9 +1,4 @@
-node_modules/
-dist/
-vendor/
-*.local
+__pycache__/
+*.pyc
 .DS_Store
-.env
-operator/state/
-operator/signing-key.pem
-*.tsbuildinfo
+*.skill
