@@ -48,7 +48,10 @@ PATTERNS = [
     (r"\b(?:here(?:'s| is) (?:the|a|your) (?:updated|revised|final|draft))\b", "context-bleed", "ERROR", "Chat preamble; delete."),
     (r"\b(?:i hope this helps|let me know if|feel free to|happy to (?:adjust|revise|help))\b", "context-bleed", "ERROR", "Chat sign-off; delete."),
     (r"\b(?:as an ai|language model|i cannot browse)\b", "context-bleed", "ERROR", "Delete."),
-    (r"\b(?:now|no longer|instead of the previously)\b.*\b(?:proposed|suggested|planned)\b", "context-bleed", "WARN", "Check whether this compares against an older draft the reader never saw."),
+    (r"\b(?:no longer|instead of the previously|now (?:reduced|increased|changed|removed))\b[^.]{0,40}?\b(?:proposed|suggested|planned|budget)?", "context-bleed", "WARN", "Check whether this compares against an older draft the reader never saw."),
+    (r"\bbefore (?:publication|publishing|posting|(?:this|it) is (?:published|posted|formali[sz]ed|submitted))\b", "context-bleed", "ERROR", "A note to the author left in the post. Do the step, then delete the note."),
+    (r"\b(?:see|in|on) the [^.\n]{0,50}?\btab\b", "context-bleed", "ERROR", "Refers to a tab in the drafting document; the forum reader has no tabs. Link or inline it."),
+    (r"\[(?:timeline|date|source|note|ref)\s*:[^\]]*\]", "context-bleed", "WARN", "Bracketed drafting note. State the date or block plainly, once."),
     # --- filler vocabulary ------------------------------------------------
     (r"\b(?:delve|delving|tapestry|testament to|realm|landscape|paradigm|synerg(?:y|ies|istic)|holistic|game[- ]changer|cutting[- ]edge|groundbreaking|revolutioni[sz]e|unlock(?:s|ing)? (?:the )?(?:full )?potential|seamless(?:ly)?|robust|pivotal|transformative|empower(?:s|ing)?|foster(?:s|ing)?|spearhead|bolster|elevate|navigate the|ever[- ]evolving|fast[- ]paced|vibrant|thriving|in today's)\b", "filler", "WARN", "Replace with the concrete claim or delete."),
     (r"\b(?:leverag(?:e|es|ing)|utili[sz](?:e|es|ing))\b", "filler", "WARN", "Use 'use'."),
@@ -76,7 +79,7 @@ SUMMARY_HEADINGS = re.compile(r"^#{1,4}\s*(?:simple summary|summary|abstract|tl;
 CLOSING_HEADINGS = re.compile(r"^#{1,4}\s*(?:conclusion|closing|summary of|final thoughts|wrap[- ]?up|recap|key takeaways)\b", re.I)
 HEADING = re.compile(r"^(#{1,6})\s+(.*)$")
 EMOJI = re.compile("[\U0001F300-\U0001FAFF☀-➿\U0001F000-\U0001F2FF]")
-PLACEHOLDER = re.compile(r"\[(?:TBD|TODO|XX+|INSERT[^\]]*|PLACEHOLDER)\]|\bTBD\b|\bXX+\b|0x\.\.\.|<[A-Z_ ]{3,}>")
+PLACEHOLDER = re.compile(r"\[(?:TBD|TODO|XX+|INSERT[^\]]*|PLACEHOLDER)\]|\bTBD\b|\bXX+\b|0x\.\.\.|<[A-Z_ ]{3,}>|<[A-Za-z][^<>\n]*\s[^<>\n]*>")
 
 
 def words(text):
@@ -149,7 +152,10 @@ def table_totals(raw):
                                 if im:
                                     vals.append(float(im.group(0).replace(",", "")))
                         stated = float(m.group(0).replace(",", ""))
-                        if len(vals) >= 2 and abs(sum(vals) - stated) > max(0.5, abs(stated) * 0.001):
+                        tol = max(0.5, abs(stated) * 0.001)
+                        # a total may cover all rows above it or only the last k (a subtotal)
+                        runs = [sum(vals[-k:]) for k in range(2, len(vals) + 1)]
+                        if len(vals) >= 2 and not any(abs(r - stated) <= tol for r in runs):
                             yield n, col, stated, sum(vals)
                     items = []
                 else:
@@ -185,6 +191,11 @@ def main():
     per_k = dashes * 1000 / n_words
     if per_k > 4:
         add("WARN", 0, "structure", f"{dashes} em dash(es) ({per_k:.1f} per 1000 words). Use full stops, commas or parentheses.")
+
+    # deferred verification: the proposal tells someone else to check its facts
+    verif = len(re.findall(r"\b(?:verif\w*|confirm\w*|double[- ]check\w*|byte[- ]for[- ]byte)\b", body, re.I))
+    if verif * 1000 / n_words > 8:
+        add("WARN", 0, "reverification", f"{verif} verify/confirm words ({verif * 1000 / n_words:.0f} per 1000). Run the checks before posting and state the results with links; keep one execution-time check, not a running instruction.")
 
     # bold density
     bolds = len(re.findall(r"\*\*[^*]+\*\*", body))
