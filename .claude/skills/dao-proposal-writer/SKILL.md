@@ -1,6 +1,6 @@
 ---
 name: dao-proposal-writer
-description: Write and tighten DAO governance proposals to the professional standard of pre-2023 forum proposals (Uniswap, ENS, Arbitrum, Aave, Compound, 1inch, Optimism, Maker), using the target DAO's own template and with no AI padding — no restating, no self-verification, no leftovers from earlier drafts or chats. Use this whenever a DAOplomats member wants to draft, rewrite, shorten, clean up or format a governance proposal, temp check, RFC, AIP/EP/1IP/ARFC, grant or funding request, delegate program, parameter change, or a forum post to a DAO, even if they only paste notes, bullet points, an old draft or a call transcript. For critiquing someone else's proposal or deciding a vote, use governance-review instead.
+description: Write and tighten DAO governance proposals to the professional standard of pre-2023 forum proposals (Uniswap, ENS, Arbitrum, Aave, Compound, 1inch, Optimism, Maker, Lido, Gitcoin), using the target DAO's own template and with no AI padding — no restating, no self-verification, no leftovers from earlier drafts or chats. Use this whenever a DAOplomats member wants to draft, rewrite, shorten, clean up or format a governance proposal, temp check, RFC, AIP/EP/1IP/ARFC, grant or funding request, delegate program, parameter change, or a forum post to a DAO, even if they only paste notes, bullet points, an old draft or a call transcript. For critiquing someone else's proposal or deciding a vote, use governance-review instead; this skill writes, governance-review red-teams.
 ---
 
 # DAO proposal writer (DAOplomats standard)
@@ -81,6 +81,21 @@ author's interests once, in a Disclosure line if the template has none
 (DAOplomats is a delegate; if the author is compensated by, delegates for,
 or is a recipient under this proposal, say so).
 
+Substance a delegate will look for (the same lenses `governance-review`
+applies, so a draft that covers them survives review). Each goes in the
+section the template gives it, stated once:
+
+- **What a For vote changes**, explainable in two sentences.
+- **Why the DAO and why now**, and what happens if it does nothing.
+- **Payment tied to delivery**: tranches or streams, milestones that are
+  dated and externally checkable, clawback or return of unspent funds.
+- **Exit path**: who can stop it, under what condition, and how funds and
+  permissions come back.
+- **Execution**: executor, multisig signers and threshold, or the calldata
+  link. The text must describe exactly what the calldata does.
+- **The three hardest questions** a sceptical delegate will ask, answered
+  in Rationale or Considerations as plain statements, not as a FAQ.
+
 Style: short declarative sentences, active voice with named actors, "we"
 for the authors, no emoji, no hype vocabulary, bold only for the amount and
 the vote options. Write in the register of a technical memo.
@@ -92,7 +107,7 @@ stay until the member supplies the value); fix WARNs unless you can say why
 one is fine:
 
 ```bash
-python3 <skill-dir>/scripts/slop_check.py draft.md --dao <uniswap|ens|arbitrum|1inch|aave|compound|optimism|generic>
+python3 <skill-dir>/scripts/slop_check.py draft.md --dao <uniswap|ens|arbitrum|1inch|aave|compound|optimism|maker|lido|gitcoin|generic>
 ```
 
 Then the judgment pass the script can't do. For each, re-read the draft:
@@ -104,6 +119,12 @@ Then the judgment pass the script can't do. For each, re-read the draft:
 - Anything comparing to "before", "previously", "now", "no longer": is the
   comparison against something the forum actually saw?
 - Would cutting this paragraph lose a fact? If not, cut it.
+
+Then offer the member a red-team pass with the `governance-review` skill in
+author mode (its "Draft feedback" format). Don't run it unasked: it is a
+separate, adversarial read and the member should choose it. If its
+findings lead to edits, apply them with this skill's rules, so fixes don't
+reintroduce restatement or self-verification.
 
 Target length: most pre-2023 proposals that passed ran 400–1,200 words
 before tables and code. Longer only when the specification needs it.
@@ -177,4 +198,7 @@ template doesn't have.
   examples. Read the section for the target DAO.
 - `references/anti-slop.md` — the three failure modes in detail, vocabulary
   table, formatting tells, before/after rewrites.
-- `scripts/slop_check.py` — linter for the mechanical cases.
+- `scripts/slop_check.py` — linter for the mechanical cases: restatement,
+  self-verification and chat/version residue phrases, missing template
+  sections, oversized summary, duplicated sentences, emoji, open
+  placeholders, and budget-table totals that don't add up.

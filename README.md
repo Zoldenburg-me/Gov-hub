@@ -41,6 +41,7 @@ A shared agent its members reach only through a neutral Gateway we operate:
 | [`operator/`](operator/) | The Concorde deployment for Shutter DAO 0x36: Gateway wiring, Signal Handlers, the Sealed Commitments Component, compose stack. Typechecked against vendored Concorde source. |
 | [`web/`](web/) | Public governance dashboard (Vite + React): live `shutterdao0x36.eth` proposals with shielded-voting state, plus a browser demo of Shutter sealed positions. The build is validated. |
 | [`docs/`](docs/) | [Architecture](docs/ARCHITECTURE.md) and the [funding proposal draft to Shutter DAO 0x36](docs/PITCH-shutter-dao-0x36.md). |
+| [`.claude/skills/dao-proposal-writer/`](.claude/skills/dao-proposal-writer/) | Claude skill for DAOplomats members: writes governance proposals in the target DAO's own template (Uniswap, ENS, Arbitrum, 1inch, Aave, Compound, Optimism, Maker, Lido, Gitcoin) without AI padding, plus a linter (`scripts/slop_check.py`) for restatement, self-verification, draft-history leaks and budget totals. |
 | `scripts/setup-vendor.sh` | Fetches Concorde (not yet on npm) into `vendor/` for typechecking and image builds. |
 
 ## Quick start

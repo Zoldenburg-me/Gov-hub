@@ -2,7 +2,7 @@
 """Lint a governance proposal draft for AI-writing tells.
 
 Usage:
-    python3 slop_check.py DRAFT.md [--dao uniswap|ens|arbitrum|1inch|aave|compound|optimism|generic]
+    python3 slop_check.py DRAFT.md [--dao uniswap|ens|arbitrum|1inch|aave|compound|optimism|maker|lido|gitcoin|generic]
 
 Checks:
   * restatement        - phrases that re-announce or re-summarise what was already said
@@ -12,6 +12,7 @@ Checks:
   * structure          - missing sections, oversized summary, duplicated sentences,
                          summary repeated in a closing section, emoji headings,
                          dash and bold density, open placeholders
+  * numbers            - table "Total" rows that do not equal the rows above
 
 Exit status is 1 when any ERROR is found, else 0. Stdlib only.
 """
@@ -57,14 +58,17 @@ PATTERNS = [
 ]
 
 REQUIRED = {
-    "generic":  ["summary|abstract|tl;?dr", "motivation|rationale|problem|background", "specification|implementation|proposal|details|scope|deliverables", "cost|budget|ask|funding|financ|no cost"],
-    "uniswap":  ["summary|tl;?dr", "background|motivation", "proposal|specification|details"],
-    "ens":      ["abstract|summary", "motivation", "specification"],
-    "arbitrum": ["abstract", "motivation", "rationale", "specifications?|specification", "steps to implement", "timeline", "overall cost|cost"],
-    "1inch":    ["simple summary|summary", "abstract", "motivation", "specification|specifications", "rationale"],
+    "generic":  ["summary|abstract|tl;?dr", "motivation|rationale|problem|background", "specification|implementation|proposal|details|scope|deliverables", "cost|budget|ask|funding|financ"],
+    "uniswap":  ["summary|tl;?dr", "background|motivation|purpose|problem", "specification|proposal|solution|details"],
+    "ens":      ["summary|description", "abstract", "specification"],
+    "arbitrum": ["abstract", "motivation", "rationale", "specifications?", "steps to implement", "timeline", "overall cost|cost", "conflicts? of interest"],
+    "1inch":    ["simple summary", "abstract", "motivation", "specification", "rationale", "considerations"],
     "aave":     ["simple summary|summary", "motivation", "specification", "disclaimer|copyright|next steps"],
-    "compound": ["summary|simple summary|tl;?dr", "motivation|background|rationale", "specification|proposal|recommendation"],
-    "optimism": ["summary|description|abstract", "motivation|problem|rationale", "specification|proposal|milestones", "budget|cost|grant"],
+    "compound": ["simple summary|summary|tl;?dr", "abstract|motivation|background|purpose", "specification|proposal|recommendation", "next steps"],
+    "optimism": ["project|proposal overview", "distribution|use of funds|budget|allocation", "milestones?|kpis?|success"],
+    "maker":    ["sentence summary", "paragraph summary", "motivation", "specification|proposal details"],
+    "lido":     ["simple summary", "abstract", "motivation", "specification"],
+    "gitcoin":  ["summary", "abstract", "motivation", "specification", "benefits", "drawbacks", "vote"],
 }
 
 SUMMARY_HEADINGS = re.compile(r"^#{1,4}\s*(?:simple summary|summary|abstract|tl;?dr|sentence summary)\b", re.I)
@@ -116,6 +120,42 @@ def strip_code(lines):
     return res
 
 
+NUM = re.compile(r"-?\d[\d,]*(?:\.\d+)?")
+
+
+def table_totals(raw):
+    """Yield (line_no, column, stated, computed) for Total rows that don't add up."""
+    rows, start = [], None
+    for i, line in enumerate(raw + [""], 1):
+        if line.strip().startswith("|"):
+            if start is None:
+                start = i
+            rows.append((i, [c.strip() for c in line.strip().strip("|").split("|")]))
+            continue
+        if rows:
+            body = [(n, r) for n, r in rows if not all(re.fullmatch(r":?-{2,}:?", c or "--") for c in r)][1:]
+            items = []
+            for n, r in body:
+                if r and re.search(r"\btotal\b", r[0].replace("*", ""), re.I):
+                    for col in range(1, len(r)):
+                        m = NUM.search(r[col].replace("*", ""))
+                        if not m:
+                            continue
+                        vals = []
+                        for _, ir in items:
+                            if col < len(ir):
+                                im = NUM.search(ir[col].replace("*", ""))
+                                if im:
+                                    vals.append(float(im.group(0).replace(",", "")))
+                        stated = float(m.group(0).replace(",", ""))
+                        if len(vals) >= 2 and abs(sum(vals) - stated) > max(0.5, abs(stated) * 0.001):
+                            yield n, col, stated, sum(vals)
+                    items = []
+                else:
+                    items.append((n, r))
+        rows, start = [], None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("draft")
@@ -147,7 +187,7 @@ def main():
 
     # bold density
     bolds = len(re.findall(r"\*\*[^*]+\*\*", body))
-    if bolds * 1000 / n_words > 12:
+    if bolds > 3 and bolds * 1000 / n_words > 12:
         add("WARN", 0, "structure", f"{bolds} bold spans. Bold only the few values a voter must not miss.")
 
     # headings: emoji, required sections
@@ -166,6 +206,10 @@ def main():
         for m in PLACEHOLDER.finditer(line):
             add("ERROR", i, "structure", f'Open placeholder "{m.group(0)}".')
 
+    # budget arithmetic
+    for n, col, stated, computed in table_totals(raw):
+        add("ERROR", n, "numbers", f"Total in column {col + 1} is {stated:,.2f} but the rows above sum to {computed:,.2f}.")
+
     secs = sections(lines)
     # summary length
     summary = None
@@ -181,7 +225,7 @@ def main():
     # closing section that repeats the summary
     for head, start, text in secs:
         if CLOSING_HEADINGS.match(head):
-            add("ERROR", start, "restatement", f'Closing section "{head.strip()}" exists. Proposals end on the last actionable section (cost, timeline, vote options).')
+            add("WARN", start, "restatement", f'Closing section "{head.strip()}". Keep it only if it adds something new (a commitment, a sunset, a next step); otherwise end on the last actionable section.')
             if summary:
                 a, b = shingles(summary[2]), shingles(text)
                 if a and b and len(a & b) / min(len(a), len(b)) > 0.25:
