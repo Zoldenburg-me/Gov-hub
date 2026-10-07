@@ -76,6 +76,10 @@ may appear in brief). Then write:
 - **Timeline / Milestones / KPIs**: dated, measurable, tied to payments.
 - **Vote options / Next steps**: what each option does, and the next stage.
 
+If the template has no vote-options or next-steps heading, put what each
+option does in the last implementation section (Arbitrum: Steps to
+Implement) rather than adding a heading.
+
 Link prior forum threads and votes instead of re-summarising them. Name the
 author's interests once, in a Disclosure line if the template has none
 (DAOplomats is a delegate; if the author is compensated by, delegates for,
@@ -94,7 +98,11 @@ section the template gives it, stated once:
 - **Execution**: executor, multisig signers and threshold, or the calldata
   link. The text must describe exactly what the calldata does.
 - **The three hardest questions** a sceptical delegate will ask, answered
-  in Rationale or Considerations as plain statements, not as a FAQ.
+  in Rationale or Considerations as plain statements, not as a FAQ. E.g.
+  the question "Why not fold this into the existing delegate program?"
+  becomes "The Delegate Incentive Program pays existing delegates for
+  participation; it has no onboarding budget. This program covers that gap
+  only."
 
 Style: short declarative sentences, active voice with named actors, "we"
 for the authors, no emoji, no hype vocabulary, bold only for the amount and
@@ -102,9 +110,10 @@ the vote options. Write in the register of a technical memo.
 
 ### 4. Check the draft
 
-Run the linter and fix every ERROR except open `[TBD]` placeholders (those
-stay until the member supplies the value); fix WARNs unless you can say why
-one is fine:
+Run the linter. Fix every ERROR, and fix WARNs unless you can say why one
+is fine. Open `[TBD]` placeholders are reported as TODO (exit code 2): they
+stay until the member supplies the value, and the draft isn't ready to post
+until the linter exits 0.
 
 ```bash
 python3 <skill-dir>/scripts/slop_check.py draft.md --dao <uniswap|ens|arbitrum|1inch|aave|compound|optimism|maker|lido|gitcoin|generic>
@@ -138,7 +147,8 @@ Give the member:
 2. Outside the proposal, a short **Open questions** list: every `[TBD]`,
    every conflict between sources, every fact you couldn't confirm for
    this version.
-3. If they gave you an earlier version: a **Changes since vN** list they can
+3. If they gave you an earlier version **that was posted publicly**: a
+   **Changes since vN** list they can
    post as a forum reply. This list never goes into the proposal body.
 
 Don't append a recap of what you did or offers to adjust beyond one line.

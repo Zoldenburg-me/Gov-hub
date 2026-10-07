@@ -14,7 +14,8 @@ Checks:
                          dash and bold density, open placeholders
   * numbers            - table "Total" rows that do not equal the rows above
 
-Exit status is 1 when any ERROR is found, else 0. Stdlib only.
+Exit status: 1 if any ERROR, 2 if the only blockers are open [TBD]
+placeholders (fine for a draft, not for posting), else 0. Stdlib only.
 """
 import argparse
 import re
@@ -204,7 +205,7 @@ def main():
     # placeholders
     for i, line in enumerate(lines, 1):
         for m in PLACEHOLDER.finditer(line):
-            add("ERROR", i, "structure", f'Open placeholder "{m.group(0)}".')
+            add("TODO", i, "pending", f'Open placeholder "{m.group(0)}" - needs a value from the author before posting.')
 
     # budget arithmetic
     for n, col, stated, computed in table_totals(raw):
@@ -252,7 +253,7 @@ def main():
     common = Counter(w.lower() for w in words(body) if len(w) > 3 and w.lower() not in stop)
 
     # report
-    order = {"ERROR": 0, "WARN": 1}
+    order = {"ERROR": 0, "WARN": 1, "TODO": 2}
     findings.sort(key=lambda f: (order[f[0]], f[1]))
     if not findings:
         print(f"clean: {n_words} words, no findings")
@@ -261,10 +262,13 @@ def main():
         loc = f"L{line}" if line else "doc"
         print(f"{sev:5} {loc:>5}  [{cat}] {msg}")
     errs = sum(1 for f in findings if f[0] == "ERROR")
-    warns = len(findings) - errs
-    print(f"\n{errs} error(s), {warns} warning(s) in {n_words} words. Top terms: " +
+    warns = sum(1 for f in findings if f[0] == "WARN")
+    todos = sum(1 for f in findings if f[0] == "TODO")
+    print(f"\n{errs} error(s), {warns} warning(s), {todos} open placeholder(s) in {n_words} words. Top terms: " +
           ", ".join(f"{w}({c})" for w, c in common.most_common(6)))
-    return 1 if errs else 0
+    if errs:
+        return 1
+    return 2 if todos else 0
 
 
 if __name__ == "__main__":

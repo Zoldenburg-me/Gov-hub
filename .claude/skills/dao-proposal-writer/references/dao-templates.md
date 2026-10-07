@@ -156,6 +156,11 @@ template itself is sound.
 **Stages.** Forum (at least 7 days) → Snapshot temperature check (1 week)
 → Tally on-chain vote.
 
+**Title format.** No mandated prefix. Posts commonly lead with the type
+or the stage, e.g. `[Non-Constitutional] …` or `[Proposal] AIP-x: …`
+*(unverified as a rule)*. Match the most recent posts in the forum's
+Proposals category.
+
 **Headings, in order (the Constitution "encourages" these):**
 1. **Abstract**: "Two or three sentences that summarize the AIP."
 2. **Motivation**
